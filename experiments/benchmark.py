@@ -225,35 +225,62 @@ def aggregate_paired_results(results: pd.DataFrame) -> pd.DataFrame:
     return aggregate_results(paired)
 
 
-def create_plots(summary: pd.DataFrame, output_dir: Path) -> list[Path]:
-    """Write five simple mean-and-standard-deviation benchmark figures."""
+def create_plots(
+    summary: pd.DataFrame,
+    paired_summary: pd.DataFrame,
+    output_dir: Path,
+) -> list[Path]:
+    """Write paired comparison plots and an all-attempt MILP timing plot."""
 
     specifications = (
         (
             "average_waiting_time",
             "Average waiting time (simulation units)",
             "average_waiting_time.png",
-            METHODS,
+            paired_summary,
+            tuple((method, method) for method in METHODS),
         ),
-        ("makespan", "Makespan (simulation units)", "makespan.png", METHODS),
-        ("deadline_misses", "Deadline misses", "deadline_misses.png", METHODS),
+        (
+            "makespan",
+            "Makespan (simulation units)",
+            "makespan.png",
+            paired_summary,
+            tuple((method, method) for method in METHODS),
+        ),
+        (
+            "deadline_misses",
+            "Deadline misses",
+            "deadline_misses.png",
+            paired_summary,
+            tuple((method, method) for method in METHODS),
+        ),
         (
             "gpu_energy_kwh",
             "Estimated dynamic GPU energy (kWh)",
             "gpu_energy.png",
-            METHODS,
+            paired_summary,
+            (
+                ("FCFS", "Full power (FCFS / MILP)"),
+                ("MILP + nonlinear", "MILP + nonlinear"),
+            ),
         ),
         (
             "milp_solve_time_seconds",
             "MILP solve time (seconds)",
             "milp_solve_time.png",
-            ("MILP",),
+            summary,
+            (("MILP", "MILP"),),
         ),
     )
     paths: list[Path] = []
-    for metric, ylabel, filename, methods in specifications:
+    for metric, ylabel, filename, plot_summary, series in specifications:
         path = output_dir / filename
-        _plot_metric(summary, metric, ylabel, path, methods)
+        note = (
+            _paired_sample_note(paired_summary)
+            if plot_summary is paired_summary
+            else None
+        )
+        _plot_metric(plot_summary, metric, ylabel, path, series, note=note)
         paths.append(path)
     return paths
 
@@ -263,19 +290,13 @@ def _plot_metric(
     metric: str,
     ylabel: str,
     path: Path,
-    methods: Sequence[str],
+    series: Sequence[tuple[str, str]],
+    *,
+    note: str | None = None,
 ) -> None:
     figure, axis = plt.subplots(figsize=(7.0, 4.5))
-    omitted_failures = False
-    for method in methods:
+    for method, label in series:
         method_rows = summary[summary["method"] == method].sort_values("number_jobs")
-        if metric != "milp_solve_time_seconds":
-            omitted_failures = omitted_failures or bool(
-                (
-                    method_rows["successful_scenarios"]
-                    < method_rows["scenario_count"]
-                ).any()
-            )
         valid = method_rows[f"{metric}_mean"].notna()
         method_rows = method_rows[valid]
         if method_rows.empty:
@@ -288,7 +309,7 @@ def _plot_metric(
             marker="o",
             capsize=4,
             linewidth=1.5,
-            label=method,
+            label=label,
         )
 
     axis.set_xlabel("Number of jobs")
@@ -296,11 +317,11 @@ def _plot_metric(
     axis.set_xticks(sorted(summary["number_jobs"].unique()))
     axis.grid(axis="y", alpha=0.3)
     axis.legend(frameon=False)
-    if omitted_failures:
+    if note:
         axis.text(
             0.99,
             0.02,
-            "Non-optimal schedules omitted; see CSV sample counts.",
+            note,
             transform=axis.transAxes,
             horizontalalignment="right",
             fontsize=8,
@@ -308,6 +329,19 @@ def _plot_metric(
     figure.tight_layout()
     figure.savefig(path, dpi=160)
     plt.close(figure)
+
+
+def _paired_sample_note(paired_summary: pd.DataFrame) -> str:
+    counts = (
+        paired_summary[paired_summary["method"].eq("FCFS")]
+        .sort_values("number_jobs")
+        .loc[:, ["number_jobs", "scenario_count"]]
+    )
+    samples = ", ".join(
+        f"{int(row.number_jobs)} jobs: n={int(row.scenario_count)}"
+        for row in counts.itertuples(index=False)
+    )
+    return f"Paired scenarios ({samples})."
 
 
 def _result_row(
@@ -438,7 +472,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     results.to_csv(raw_path, index=False, na_rep="")
     summary.to_csv(summary_path, index=False, na_rep="")
     paired_summary.to_csv(paired_summary_path, index=False, na_rep="")
-    plot_paths = create_plots(summary, output_dir)
+    plot_paths = create_plots(summary, paired_summary, output_dir)
 
     print(f"\nRaw results: {raw_path}")
     print(f"Summary:     {summary_path}")

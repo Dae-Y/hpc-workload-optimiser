@@ -250,11 +250,14 @@ The corresponding increase in solve time is a practical limitation of the time-i
 
 ![Estimated GPU energy by workload size](results/gpu_energy.png)
 
-Across successful MILP schedules, nonlinear optimisation produced modest estimated energy reductions by extending GPU-job runtimes within their existing reserved windows.
+Across paired successful MILP schedules, nonlinear optimisation produced modest estimated energy reductions by extending GPU-job runtimes within their existing reserved windows.
 
 An increase in GPU utilisation after power reduction can simply mean that jobs occupy the GPU for longer. It should not by itself be interpreted as improved computational efficiency.
 
-The 50-job nonlinear result includes only the two scenarios for which the MILP was proven optimal, as indicated on the plot.
+Every method at a given workload size is plotted over the same seeds. The
+50-job points therefore include only the two scenarios for which the MILP was
+proven optimal. FCFS and MILP share one full-power series because their
+estimated full-power GPU energy is identical by construction.
 
 ## Benchmark plots
 
@@ -266,9 +269,10 @@ The 50-job nonlinear result includes only the two scenarios for which the MILP w
 
 ![Deadline misses by workload size](results/deadline_misses.png)
 
-Error bars show sample standard deviation across the available seeds.
-
-The plots mark cases where non-optimal schedules were omitted. For like-for-like comparisons between methods, use the paired benchmark summary.
+Error bars show sample standard deviation across paired seeds, and each
+annotation reports the corresponding sample counts. The MILP solve-time plot is
+the exception: it includes all attempts, including those without an optimality
+proof.
 
 ## Running the project
 
