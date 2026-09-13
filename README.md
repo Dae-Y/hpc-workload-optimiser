@@ -129,24 +129,22 @@ $$
 
 with adjusted runtime
 
-$$
-\mathrm{adjusted\ runtime}_j
-=
-\frac{\mathrm{base\ runtime}_j}{p_j^{0.7}}.
-$$
+```math
+\mathrm{adjusted\ runtime}_j =
+\frac{\mathrm{base\ runtime}_j}{p_j^{0.7}}
+```
 
 SciPy's SLSQP solver minimises estimated dynamic GPU energy.
 
 With simulation time interpreted as minutes,
 
-$$
-E_j
-=
-g_jP_{\mathrm{nominal}}p_j
+```math
+E_j =
+g_j P_{\mathrm{nominal}} p_j
 \left(
 \frac{\mathrm{adjusted\ runtime}_j}{60}
-\right),
-$$
+\right)
+```
 
 where $g_j$ is the number of GPUs requested and $P_{\mathrm{nominal}}$ is the assumed nominal power per GPU in kW.
 
