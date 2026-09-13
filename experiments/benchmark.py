@@ -207,6 +207,24 @@ def aggregate_results(results: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def aggregate_paired_results(results: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate methods over only scenarios with a proven-optimal MILP.
+
+    This prevents an all-seed FCFS mean from being presented as directly
+    comparable to a MILP mean based on a smaller, solver-selected seed subset.
+    """
+
+    scenario_keys = ["number_jobs", "seed"]
+    valid_keys = results.loc[
+        results["method"].eq("MILP")
+        & results["milp_status"].eq("Optimal")
+        & results["average_waiting_time"].notna(),
+        scenario_keys,
+    ]
+    paired = results.merge(valid_keys, on=scenario_keys, how="inner")
+    return aggregate_results(paired)
+
+
 def create_plots(summary: pd.DataFrame, output_dir: Path) -> list[Path]:
     """Write five simple mean-and-standard-deviation benchmark figures."""
 
@@ -413,14 +431,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     results = pd.DataFrame(rows)
     summary = aggregate_results(results)
+    paired_summary = aggregate_paired_results(results)
     raw_path = output_dir / "benchmark_results.csv"
     summary_path = output_dir / "benchmark_summary.csv"
+    paired_summary_path = output_dir / "benchmark_paired_summary.csv"
     results.to_csv(raw_path, index=False, na_rep="")
     summary.to_csv(summary_path, index=False, na_rep="")
+    paired_summary.to_csv(paired_summary_path, index=False, na_rep="")
     plot_paths = create_plots(summary, output_dir)
 
     print(f"\nRaw results: {raw_path}")
     print(f"Summary:     {summary_path}")
+    print(f"Paired:      {paired_summary_path}")
     for path in plot_paths:
         print(f"Plot:        {path}")
 
