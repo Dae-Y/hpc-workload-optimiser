@@ -85,6 +85,23 @@ class EnergyOptimisationError(RuntimeError):
     """Raised when SLSQP fails or returns an infeasible power allocation."""
 
 
+def estimate_full_power_gpu_energy(
+    schedule: Schedule,
+    config: EnergyOptimisationConfig | None = None,
+) -> float:
+    """Estimate full-power dynamic GPU energy in kWh for a schedule's jobs."""
+
+    config = config or EnergyOptimisationConfig()
+    hours_per_time_unit = config.minutes_per_time_unit / 60.0
+    return sum(
+        allocation.job.gpus
+        * config.nominal_gpu_power_kw
+        * allocation.job.estimated_runtime
+        * hours_per_time_unit
+        for allocation in schedule.allocations
+    )
+
+
 def relative_performance(power_fraction: float, exponent: float = 0.7) -> float:
     """Return stylised relative GPU performance ``p**exponent``.
 

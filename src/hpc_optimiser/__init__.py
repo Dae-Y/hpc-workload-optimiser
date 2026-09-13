@@ -15,6 +15,7 @@ from .nonlinear_energy import (
     EnergyOptimisationError,
     EnergyOptimisationResult,
     GPUPowerDecision,
+    estimate_full_power_gpu_energy,
     optimise_gpu_energy,
     relative_performance,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "Schedule",
     "ScheduleMetrics",
     "calculate_metrics",
+    "estimate_full_power_gpu_energy",
     "generate_workload",
     "optimise_gpu_energy",
     "relative_performance",

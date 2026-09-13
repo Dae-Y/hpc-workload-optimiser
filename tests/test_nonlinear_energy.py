@@ -5,6 +5,7 @@ import pytest
 from hpc_optimiser.models import Allocation, Job, Node, Schedule
 from hpc_optimiser.nonlinear_energy import (
     EnergyOptimisationConfig,
+    estimate_full_power_gpu_energy,
     optimise_gpu_energy,
     relative_performance,
 )
@@ -76,6 +77,20 @@ def test_schedule_without_gpu_jobs_is_a_successful_no_op() -> None:
     assert result.decisions == ()
     assert result.optimised_gpu_energy_kwh == 0
     assert result.average_power_fraction is None
+
+
+def test_full_power_energy_uses_explicit_kwh_conversion() -> None:
+    schedule = _small_schedule()
+
+    energy = estimate_full_power_gpu_energy(
+        schedule,
+        EnergyOptimisationConfig(
+            nominal_gpu_power_kw=0.3,
+            minutes_per_time_unit=1.0,
+        ),
+    )
+
+    assert energy == pytest.approx(1 * 0.3 * 3 / 60)
 
 
 @pytest.mark.parametrize(
